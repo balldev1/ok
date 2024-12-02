@@ -1,0 +1,65 @@
+- การจัดการ Query
+  ใช้ limit() และ skip() เพื่อควบคุมจำนวนข้อมูล
+  เช่นการทำ ตาราง table pagination ดึงข้อมูลมาหน้าละ 10 เพือไม่ให้ดึงข้อมูลมาในทีเดียว
+  db.users.find().limit(10);   ดึงข้อมูล 10 ตัวแรก
+  db.users.find().skip(10).limit(10);   ดึงข้อมูลตั้งแต่ตัวที่ 11 เป็นต้นไป
+  ใช้ Aggregation Pipeline
+  ข้อมูลที่ซับซ้อน ใช้ aggregation pipeline ดึงข้อมูลแค่ที่ต้องการมาแทนที่จะดึงมาทั้งหมด
+- เลือกฟิลด์ที่จำเป็น: ควรสร้าง Index บนฟิลด์ที่ใช้ในการค้นหาบ่อยๆ
+  หรือใช้ใน query filter เพื่อไม่ให้ระบบเกิดความล่าช้าในการทำงาน.
+  1. Index บนฟิลด์ email email มักใช้ในการค้นหาผู้ใช้จากฐานข้อมูล
+  เช่น การลงทะเบียนผู้ใช้ใหม่หรือการล็อกอิน การสร้าง Index บนฟิลด์นี้จะช่วยเพิ่มความเร็วในการค้นหาผู้ใช้จากอีเมล
+  MongoDB จะใช้ Index แทนการค้นหาฐานข้อมูลทั้งหมด MongoDB ไม่จำเป็นต้องอ่านทุกๆ เรียกแถว
+  ในฐานข้อมูลเพื่อค้นหาค่าที่ต้องการ หากใช้ Index ระบบจะสามารถหาข้อมูลที่ต้องการได้ทันทีจาก Index โดยไม่ต้องสแกนฐานข้อมูลทั้งหมด.
+  เช่น db.users.find({ email: 'user@example.com' }); MongoDB จะต้องสแกนทุกๆ เรียกแถวใน collection users
+  เพื่อหาผู้ใช้ที่ตรงกับอีเมลที่ระบุ.
+  db.users.createIndex({ email: 1 }); MongoDB จะใช้ Index นี้เพื่อไปหาผู้ใช้ที่มีอีเมลที่ตรงกับการค้นหาอย่างรวดเร็ว
+   โดยไม่ต้องสแกนข้อมูลทั้งหมดใน collection:
+
+  การออกแบบฐานข้อมูลที่เหมาะสม
+  สมมุติว่าเรามีระบบสำหรับการจัดการการสั่งซื้อสินค้าในร้านค้าออนไลน์ ออกแบบฐานข้อมูลให้มี
+
+  orders, products, customers, และ payments
+- Collection: orders
+    {
+      "_id": ObjectId("5f1a1d4b2a5f8d6c9d0f041a"),
+      "orderId": "1001",
+      "customerId": ObjectId("5f1a1d4b2a5f8d6c9d0f041b"),
+      "items": [
+        { "productId": 1, "quantity": 2, "price": 100 },  <=== จะมี productId ของ Collection: products เพือทำให้รู้ว่า order นี้มีอะรไบ้างโดยเราจะใช้ productId ในการไปหา name ว่า productId นี้สินค้าชืออะไร
+        { "productId": 2, "quantity": 1, "price": 200 }
+      ],
+      "totalPrice": 400,
+      "status": "pending",
+      "createdAt": ISODate("2024-12-02T00:00:00Z")
+    }
+
+- Collection: products
+{
+  "_id": ObjectId("5f1a1d4b2a5f8d6c9d0f041c"),
+  "productId": "1", ===> productId สำหรับไปผูกกับ order เพือให้รู้ว่า order นั้นมี productอะไร
+  "name": "Product A",  ===> ชือ product
+  "price": 100,
+  "stock": 50
+}
+
+- Collection: customers
+{
+  "_id": ObjectId("5f1a1d4b2a5f8d6c9d0f041b"),
+  "name": "John Doe",
+  "email": "johndoe@example.com",
+  "address": "123 Main St, City"
+}
+
+Collection: payments
+{
+  "_id": ObjectId("5f1a1d4b2a5f8d6c9d0f041d"),
+  "orderId": "1001", ===> ผูกกับ order  เพือแสดงว่า ออเดอร์นี้ได้จ่ายตังแล้ว
+  "paymentStatus": "paid",
+  "paymentMethod": "credit card",
+  "amount": 400,
+  "paymentDate": ISODate("2024-12-02T00:00:00Z")
+}
+
+
+
